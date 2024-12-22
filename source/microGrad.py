@@ -1,31 +1,105 @@
-"""
-#Goal: build a tool to create a connected structure of the model of nodes with a inbuilt gradient feature that tells each node
- how to update itself(take it's next step) to better fit the data.
-
-Thoughts:
-1. L = w*x + b; That's how loss functions are usually in some sense. We need to compute the gradient of L wrt w and b. x is the input... So, we are optimising the weights so that we have the least loss for the inputs of this form...
-2. in the general case, we have change-needed: Delta = f(x, w1, w2, ... wn) where x is the input to that level/layer and w1, w2, ... wn are the tunable parameters in that level.
-3. Our goal is to have a tool that can compute the gradient of Delta wrt w1, w2, ... wn will have terms from (x and wi's)
-So, in this context, we need to know what L is, and then gradient of each level wrt to the next one(in the general case).
-3. The idea is to reduce the LOSS, which means the layer just before needs to know how to change!
-"""
-import torch
-import matplotlib.pyplot as plt
-
-
+from random import random
 class Value:
-    def __init__(self, val, op=None):
+    def __init__(self, val, children = None, op = None, grad = 0):
         self.val = val
-        self.grad = 0 # grad definition: dL/dx
+        self.children = children
+        self.op = op
+        self.grad = grad
+        self.backward = lambda: None
 
-# Toy task: generate samples of y from x, where y = 3x + 4, and build a model to predict y from x.
-# We will use a multi layer perceptron but without any activation function(we will add it later), and that model should generalize Universally!
-def generate_linear_data(samples = 1000, m = 3, c = 4, sd = 0.05):
-    x = torch.randn(samples)
-    y = m*x + c + torch.randn(samples)*sd
-    return x, y
+    def __repr__(self):
+        return f"Value(data={self.val}, grad={self.grad})"
+    
+    # Construction of the nodes from elementary operations
+    def __add__(self, other):
+        other = Value(other) if not isinstance(other, Value) else other
+        res = Value(self.val + other.val, children = [self, other], op = "+")
+        def backward():
+            # res = self + other                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            9
+            # dL/dself = dL/dres * dres/dself 
+            self.grad += res.grad
+            other.grad += res.grad
+            #print(f"self: {self}, other: {other}")
+        res.backward = backward
+        # every node should know the backward pass that needs to be invoked, when necessary!
+        return res
+    
+    def __mul__(self, other):
+        other = Value(other) if not isinstance(other, Value) else other
+        res = Value(self.val * other.val, children = [self, other], op = "*")
+        def backward():
+            # in this step:
+            # res = self * other
+            # dL/dself = dL/dres * dres/dself ## dL/dres is easier to calculate as it is closer to L
+            self.grad += res.grad * other.val # += because self can have other children too
+            other.grad += res.grad * self.val
+        res.backward = backward
+        return res
+    
+    def __pow__(self, power):
+        assert isinstance(power,(int, float)), "Only integer/float powers are supported"
+        res = Value(self.val**power, children = [self], op = f"**{power}")
+        def backward():
+            # in this step: res = self**power
+            # dL/dself = dL/dres * dres/dself
+            self.grad += res.grad * power * self.val**(power-1)
+        res.backward = backward
+        return res
+    
+    # this backward pass when called will do the entire backpropagation starting from this node! dL/dnode calculation
+    def back_prop(self):
+        self.grad = 1 # dL/dL = 1
+        # let us do a dfs topo sort to do the backpropagation
+        topo = self.topo_sort()
+        for node in topo:
+            node.backward()
+        
+    def topo_sort(self):
+        topo = []
+        visited = set()
+        def dfs(node):
+            if node in visited: return
+            if node.children:
+                for child in node.children:
+                    dfs(child)
+            topo.append(node)
+            visited.add(node)
+        dfs(self)
+        topo.reverse()
+        return topo
 
-x_linear, y_linear = generate_linear_data(1000, 3, 4, 0.05)
-print(x_linear, y_linear)
-plt.scatter(x_linear, y_linear)
-plt.show()
+    def step(self, lr):
+        # set up the gradients and then update the values
+        topo = self.topo_sort()
+        self.back_prop()
+        for node in topo:
+            if node.op is not None:
+                node.val -= lr * node.grad
+                node.grad = 0 # reset the gradients for the next iteration
+
+    def __rmul__(self, other):
+        # cases like 2*Value(3)
+        return self.__mul__(other)
+
+    def __sub__(self, other):
+        return self + (-1)*other
+
+    def __neg__(self):
+        # Eg: -Value(3)
+        return -1*self # will work because __rmul__ is defined
+    
+    def __truediv__(self, other):
+        return self * other**-1 # will work because __pow__ is defined
+    
+    def __rtruediv__(self, other):
+        # other/self
+        return other * self**-1
+    
+    def __radd__(self, other):
+        # other + self
+        return self + other
+    
+    def __rsub__(self, other):
+        # other - self
+        return -1*self + other
+    # let us assume that cases like Val**Val are 2**Val are not supported for now...
