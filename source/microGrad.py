@@ -73,9 +73,8 @@ class Value:
         topo = self.topo_sort()
         self.back_prop()
         for node in topo:
-            if node.op is not None:
-                node.val -= lr * node.grad
-                node.grad = 0 # reset the gradients for the next iteration
+            node.val -= lr * node.grad
+            node.grad = 0 # reset the gradients for the next iteration
 
     def __rmul__(self, other):
         # cases like 2*Value(3)
