@@ -1,9 +1,10 @@
 from random import random
 class Value:
-    def __init__(self, val, children = None, op = None, grad = 0):
+    def __init__(self, val, no_grad=False, children = None, op = None, grad = 0):
         self.val = val
         self.children = children
         self.op = op
+        self.no_grad = no_grad
         self.grad = grad
         self.backward = lambda: None
 
@@ -52,6 +53,7 @@ class Value:
         # let us do a dfs topo sort to do the backpropagation
         topo = self.topo_sort()
         for node in topo:
+            if node.no_grad: continue
             node.backward()
         
     def topo_sort(self):
@@ -73,6 +75,7 @@ class Value:
         topo = self.topo_sort()
         self.back_prop()
         for node in topo:
+            if node.no_grad: continue
             node.val -= lr * node.grad
             node.grad = 0 # reset the gradients for the next iteration
 
