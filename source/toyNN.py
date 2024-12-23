@@ -9,7 +9,7 @@ What is it capable of?
 4. Let us fix the target m and c as 3 and 4. we are trying to get the line y = 3x+4
 5. two sample points at x = 1, and at x = 2, y = 7, and y = 10, or let's say x is generated randomly at runtime :)
 """
-def f(x): return 8*x**2 + 12*x + 3 # 3 points are needed to uniquely identify a quadratic equation
+def f(x): return 3*x**2 + 12*x + 5 # 3 points are needed to uniquely identify a quadratic equation
 from tqdm import tqdm
 epochs = 10000
 a = Value(random())
@@ -19,7 +19,6 @@ lr = 0.01
 X = [Value(x, no_grad=True) for x in [-1,0,1]]
 Y = [Value(f(x.val), no_grad=True) for x in X]
 print(f"X: {[x.val for x in X]}, Y: {[y.val for y in Y]}")
-# TODO: this can  be moved to a forward pass... - DONE YAAAY!!!!
 L = sum([(y - (a*x**2 + b*x + c))**2 for x,y in zip(X,Y)])
 for i in tqdm(range(epochs)):
     L.step(lr)

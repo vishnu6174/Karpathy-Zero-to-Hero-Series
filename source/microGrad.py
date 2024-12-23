@@ -20,8 +20,8 @@ class Value:
         def backward():
             # res = self + other                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            9
             # dL/dself = dL/dres * dres/dself 
-            self.grad += res.grad
-            other.grad += res.grad
+            if not self.no_grad: self.grad += res.grad
+            if not other.no_grad: other.grad += res.grad
             #print(f"self: {self}, other: {other}")
         def forward():
             res.val = self.val + other.val
@@ -38,8 +38,8 @@ class Value:
             # in this step:
             # res = self * other
             # dL/dself = dL/dres * dres/dself ## dL/dres is easier to calculate as it is closer to L
-            self.grad += res.grad * other.val # += because self can have other children too
-            other.grad += res.grad * self.val
+            if not self.no_grad: self.grad += res.grad * other.val # += because self can have other children too
+            if not other.no_grad: other.grad += res.grad * self.val
         def forward():
             res.val = self.val * other.val
         res.forward = forward
@@ -53,7 +53,7 @@ class Value:
         def backward():
             # in this step: res = self**power
             # dL/dself = dL/dres * dres/dself
-            self.grad += res.grad * power * self.val**(power-1)
+            if not self.no_grad: self.grad += res.grad * power * self.val**(power-1)
         def forward():
             res.val = self.val**power
         res.no_grad = self.no_grad
