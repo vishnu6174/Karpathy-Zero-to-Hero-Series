@@ -16,18 +16,12 @@ a = Value(random())
 b = Value(random())
 c = Value(random())
 lr = 0.01
-x1 = Value(-1, no_grad=True)
-x2 = Value(0, no_grad=True)
-x3 = Value(1, no_grad=True)
-y1 = Value(f(x1.val), no_grad=True)
-y2 = Value(f(x2.val), no_grad=True)
-y3 = Value(f(x3.val), no_grad=True)
-print(f"x1: {x1.val}, y1: {y1.val}, x2: {x2.val}, y2: {y2.val}, x3: {x3.val}, y3: {y3.val}")
+X = [Value(x, no_grad=True) for x in [-1,0,1]]
+Y = [Value(f(x.val), no_grad=True) for x in X]
+print(f"X: {[x.val for x in X]}, Y: {[y.val for y in Y]}")
+# TODO: this can  be moved to a forward pass... - DONE YAAAY!!!!
+L = sum([(y - (a*x**2 + b*x + c))**2 for x,y in zip(X,Y)])
 for i in tqdm(range(epochs)):
-    L = (y1 - (a*x1**2 + b*x1+c))**2 + (y2 - (a*x2**2 + b*x2 + c))**2 + (y3 - (a*x3**2 + b*x3 + c))**2 # TODO: this can  be moved to a forward pass...
     L.step(lr)
     if i%100==0: print(f"Epoch: {i}, Loss: {L.val:.2f}, equation: {a.val:.2f}x^2 + {b.val:.2f}x + {c.val:.2f}")
-
-print(f"y1: {y1.val}, predicted: {a*x1**2 + b*x1 + c}")
-print(f"y2: {y2.val}, predicted: {a*x2**2 + b*x2 + c}")
-print(f"y3: {y3.val}, predicted: {a*x3**2 + b*x3 + c}")
+print(f"Final equation: {a.val:.2f}x^2 + {b.val:.2f}x + {c.val:.2f}")

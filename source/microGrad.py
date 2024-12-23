@@ -7,43 +7,57 @@ class Value:
         self.no_grad = no_grad
         self.grad = grad
         self.backward = lambda: None
+        self.forward = lambda: None
 
     def __repr__(self):
         return f"Value(data={self.val}, grad={self.grad})"
     
     # Construction of the nodes from elementary operations
     def __add__(self, other):
-        other = Value(other) if not isinstance(other, Value) else other
+        other = Value(other, no_grad=True) if not isinstance(other, Value) else other
         res = Value(self.val + other.val, children = [self, other], op = "+")
+        if self.no_grad and other.no_grad: res.no_grad = True
         def backward():
             # res = self + other                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            9
             # dL/dself = dL/dres * dres/dself 
             self.grad += res.grad
             other.grad += res.grad
             #print(f"self: {self}, other: {other}")
+        def forward():
+            res.val = self.val + other.val
+        res.forward = forward
         res.backward = backward
         # every node should know the backward pass that needs to be invoked, when necessary!
         return res
     
     def __mul__(self, other):
-        other = Value(other) if not isinstance(other, Value) else other
+        other = Value(other, no_grad=True) if not isinstance(other, Value) else other
         res = Value(self.val * other.val, children = [self, other], op = "*")
+        if self.no_grad and other.no_grad: res.no_grad = True
         def backward():
             # in this step:
             # res = self * other
             # dL/dself = dL/dres * dres/dself ## dL/dres is easier to calculate as it is closer to L
             self.grad += res.grad * other.val # += because self can have other children too
             other.grad += res.grad * self.val
+        def forward():
+            res.val = self.val * other.val
+        res.forward = forward
         res.backward = backward
         return res
     
     def __pow__(self, power):
         assert isinstance(power,(int, float)), "Only integer/float powers are supported"
         res = Value(self.val**power, children = [self], op = f"**{power}")
+        if self.no_grad: res.no_grad = True
         def backward():
             # in this step: res = self**power
             # dL/dself = dL/dres * dres/dself
             self.grad += res.grad * power * self.val**(power-1)
+        def forward():
+            res.val = self.val**power
+        res.no_grad = self.no_grad
+        res.forward = forward
         res.backward = backward
         return res
     
@@ -78,6 +92,9 @@ class Value:
             if node.no_grad: continue
             node.val -= lr * node.grad
             node.grad = 0 # reset the gradients for the next iteration
+        # forward pass to get the new loss
+        for node in reversed(topo):
+            node.forward()
 
     def __rmul__(self, other):
         # cases like 2*Value(3)
