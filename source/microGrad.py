@@ -1,4 +1,5 @@
 from random import random
+from math import tanh
 class Value:
     def __init__(self, val, no_grad=False, children = None, op = None, grad = 0):
         self.val = val
@@ -70,6 +71,20 @@ class Value:
             if not self.no_grad: self.grad += res.grad * (self.val > 0)
         def forward():
             res.val = 0 if self.val < 0 else self.val
+        res.forward = forward
+        res.backward = backward
+        return res
+
+    def tanh_activation(self):
+        res = Value(tanh(self.val), children = [self], op = "tanh")
+        if self.no_grad: res.no_grad = True
+        def backward():
+            # in this step: res = tanh(self)
+            # dtanh(x)/dx = 1 - tanh(x)**2
+            # dL/dself = dL/dres * dres/dself
+            if not self.no_grad: self.grad += res.grad * (1 - res.val**2)
+        def forward():
+            res.val = tanh(self.val)
         res.forward = forward
         res.backward = backward
         return res
