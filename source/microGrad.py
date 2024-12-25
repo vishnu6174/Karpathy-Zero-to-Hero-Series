@@ -60,6 +60,19 @@ class Value:
         res.forward = forward
         res.backward = backward
         return res
+
+    def relu(self):
+        res = Value(0 if self.val < 0 else self.val, children = [self], op = "ReLU")
+        if self.no_grad: res.no_grad = True
+        def backward():
+            # in this step: res = ReLU(self)
+            # dL/dself = dL/dres * dres/dself
+            if not self.no_grad: self.grad += res.grad * (self.val > 0)
+        def forward():
+            res.val = 0 if self.val < 0 else self.val
+        res.forward = forward
+        res.backward = backward
+        return res
     
     # this backward pass when called will do the entire backpropagation starting from this node! dL/dnode calculation
     def back_prop(self):
@@ -93,6 +106,11 @@ class Value:
             node.val -= lr * node.grad
             node.grad = 0 # reset the gradients for the next iteration
         # forward pass to get the new loss
+        for node in reversed(topo):
+            node.forward()
+
+    def forward_prop(self):
+        topo = self.topo_sort()
         for node in reversed(topo):
             node.forward()
 
