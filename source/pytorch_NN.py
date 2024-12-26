@@ -7,7 +7,7 @@ from torch.optim import Adam
 def f(x, sd=0):
     return x**4+3*x**3 + 5*x**2 + 2*x - 1 + random.gauss(0, sd)
 
-xrange = (-3, 3)
+xrange = (-300, 300)
 samples = 1000
 d = (xrange[1] - xrange[0]) / samples
 X = [xrange[0] + i*d for i in range(samples)]
@@ -41,7 +41,7 @@ class CustomMLP(nn.Module):
         return self.net(x)
 
 # Define layer sizes: [input_dim, ..., output_dim]
-layer_sizes = [1, 3, 6, 8, 5, 1]
+layer_sizes = [1, 30, 300, 3000, 1]
 
 # Create the model
 model = CustomMLP(layer_sizes).to(device)
