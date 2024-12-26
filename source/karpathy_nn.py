@@ -20,7 +20,14 @@ class Neuron(Module):
 
     def __call__(self, x):
         act = sum((wi*xi for wi,xi in zip(self.w, x)), self.b)
-        return act.tanh() if self.nonlin else act
+        #80% Relu, 10% square, 10% cube
+        if self.nonlin:
+            # weighted sampling
+            # if random.random() < 0.8:
+            #     return act.square()
+            return act.relu()
+        else:
+            return act
 
     def parameters(self):
         return self.w + [self.b]
@@ -62,21 +69,21 @@ class MLP(Module):
 
 # Trying on an example:
 def f(x, sd=0):
-    return x**3 + 3*x**2 + 2*x + 1 + random.gauss(0, sd)
-xrange = (-3, 3)
-samples = 100 # get 100 samples by splitting the range into 100 parts
+    return 3*x**2 + 2*x + 1 + random.gauss(0, sd)
+xrange = (-10, 10)
+samples = 300 # get 100 samples by splitting the range into 100 parts
 d = (xrange[1] - xrange[0]) / samples
 X = [xrange[0] + i*d for i in range(samples)]
 Y = [f(x) for x in X]
 
 # Let's train a simple MLP to predict this function:
 # Initialize the MLP
-mlp = MLP(1, [2,2,1])
+mlp = MLP(2, [2,2,1])
 # Training loop
-learning_rate = 0.001
+learning_rate = 0.005
 for epoch in range(101):
     # Forward pass
-    Ypred = [mlp([Value(x)]) for x in X]
+    Ypred = [mlp([Value(x), Value(x**2)]) for x in X]
 
     # Compute loss (Mean Squared Error)
     loss = sum((y_pred - y)**2 for y_pred, y in zip(Ypred, Y)) / len(Y)
@@ -95,5 +102,5 @@ for epoch in range(101):
 plt.scatter(X, Y, label='True Function')
 plt.scatter(X, [y_pred.data for y_pred in Ypred], label='Predicted Function')
 plt.legend()
-# plt.show()
+plt.show()
 

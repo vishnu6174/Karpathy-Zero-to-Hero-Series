@@ -61,6 +61,19 @@ class Value:
 
         return out
 
+    def square(self):
+        out = Value(self.data**2, (self,), 'square')
+        def _backward():
+            self.grad += 2 * self.data * out.grad
+        out._backward = _backward
+        return out
+
+    def cube(self):
+        out = Value(self.data**3, (self,), 'cube')
+        def _backward():
+            self.grad += 3 * self.data**2 * out.grad
+        out._backward = _backward
+        return out
 
     def backward(self):
         # topological order all of the children in the graph
